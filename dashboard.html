@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuralogins - Painel Experimental</title> <!-- Título Atualizado -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --primary-dark: #1a202c; /* Quase preto */
+    --secondary-dark: #2d3748; /* Cinza escuro azulado */
+    --accent-blue: #4299e1;
+    --accent-purple: #9f7aea;
+    --text-light: #e2e8f0;
+    --text-medium: #a0aec0;
+    --text-dark: #4a5568;
+    --card-bg: #2d3748; /* Fundo dos cards */
+    --border-color: #4a5568;
+    --success-color: #48bb78;
+    --error-color: #f56565;
+    --warning-color: #ecc94b; /* Amarelo para avisos */
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  body {
+    background-color: var(--primary-dark); /* Fundo principal escuro */
+    min-height: 100vh;
+    display: flex;
+    color: var(--text-light);
+    font-size: 15px; /* Base font size */
+  }
+
+  /* --- Sidebar Redesenhada --- */
+  .sidebar {
+    width: 260px; background: var(--secondary-dark); color: var(--text-light);
+    height: 100vh; position: fixed; top: 0; left: 0; /* Garantir posição */ padding: 25px; box-shadow: 3px 0 15px rgba(0, 0, 0, 0.2);
+    display: flex; flex-direction: column;
+    /* Transição para largura (desktop) e transform (mobile) */
+    transition: width 0.3s ease, transform 0.3s ease-out;
+    z-index: 1000; /* Alto z-index para ficar acima do overlay */
+  }
+  .sidebar .logo { display: flex; align-items: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+  .sidebar .logo svg { width: 35px; height: 35px; margin-right: 12px; fill: var(--accent-blue); stroke: none; }
+  .sidebar .logo h1 { font-size: 1.6rem; color: #fff; font-weight: 600; }
+  .sidebar ul { list-style: none; flex-grow: 1; }
+  .sidebar ul li { margin: 10px 0; }
+  .sidebar ul li a {
+    color: var(--text-medium); text-decoration: none; display: flex; align-items: center;
+    padding: 12px 15px; border-radius: 8px; transition: all 0.25s ease;
+    font-weight: 500; position: relative; overflow: hidden;
+  }
+  .sidebar ul li a::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-purple)); opacity: 0.15; transition: left 0.3s ease; z-index: 0; border-radius: 8px; }
+  .sidebar ul li a:hover { color: #fff; background-color: rgba(255, 255, 255, 0.05); }
+  .sidebar ul li a:hover::before { left: 0; }
+  .sidebar ul li a.active { background-color: rgba(66, 153, 225, 0.15); color: #fff; font-weight: 600; box-shadow: 0 0 15px rgba(66, 153, 225, 0.2); }
+  .sidebar ul li a.active::before { left: 0; opacity: 0.25; }
+  .sidebar ul li a i { margin-right: 12px; font-size: 1.1rem; width: 20px; text-align: center; transition: transform 0.3s ease; z-index: 1; }
+  .sidebar ul li a:hover i { transform: scale(1.1); }
+  .sidebar ul li a span { z-index: 1; }
+  .sidebar ul li:last-child { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); }
+  .sidebar ul li a#link-logout:hover { background-color: rgba(245, 101, 101, 0.1); color: var(--error-color); }
+  .sidebar ul li a#link-logout:hover::before { background: linear-gradient(90deg, transparent, var(--error-color)); opacity: 0.2; }
+
+  /* --- Conteúdo Principal Redesenhado --- */
+  .main-content {
+    margin-left: 260px; width: calc(100% - 260px); padding: 40px; background-color: var(--primary-dark); overflow-y: auto;
+    transition: margin-left 0.3s ease, width 0.3s ease; /* Adiciona transição */
+   }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+  .header h2 { font-size: 2.2rem; color: var(--text-light); font-weight: 600; animation: none; }
+  .header .user-info { display: flex; align-items: center; }
+  .header .user-info span { margin-right: 15px; font-size: 1rem; color: var(--text-medium); }
+  .header .user-info .btn { background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%); color: white; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.3s ease; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+  .header .user-info .btn i { margin-right: 8px; }
+  .header .user-info .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+
+  /* --- Seções Redesenhadas --- */
+  .section { display: none; background: transparent; padding: 0; border-radius: 0; box-shadow: none; margin-bottom: 40px; animation: sectionFadeIn 0.6s ease-out; }
+  @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .section.active { display: block; }
+  .section h3 { font-size: 1.8rem; color: var(--text-light); margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; font-weight: 500; }
+  .section h3 i { margin-right: 12px; color: var(--accent-blue); }
+
+  /* --- Cards do Dashboard Redesenhados --- */
+  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 30px; margin-bottom: 40px; }
+  .card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); text-align: center; transition: all 0.3s ease; border: 1px solid var(--border-color); position: relative; overflow: hidden; animation: none; }
+  .card::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(159, 122, 234, 0.15) 0%, transparent 70%); opacity: 0; transition: opacity 0.5s ease; animation: rotateBackground 10s linear infinite paused; z-index: 0; }
+  @keyframes rotateBackground { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); border-color: var(--accent-purple); }
+  .card:hover::after { opacity: 1; animation-play-state: running; }
+  .card i { font-size: 2.5rem; color: var(--accent-purple); margin-bottom: 15px; transition: transform 0.3s ease, color 0.3s ease; display: block; z-index: 1; position: relative; }
+  .card:hover i { transform: scale(1.1); color: lighten(var(--accent-purple), 10%); }
+  .card h4 { font-size: 1.1rem; color: var(--text-medium); margin-bottom: 8px; font-weight: 500; z-index: 1; position: relative; }
+  .card p { font-size: 2rem; color: var(--text-light); font-weight: 600; z-index: 1; position: relative; transition: color 0.3s ease; }
+  .card:hover p { color: #fff; }
+
+  /* --- Tabela de Histórico Redesenhada --- */
+  .history-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); }
+  .history-table th, .history-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; font-size: 0.95rem; }
+  .history-table th { background: var(--secondary-dark); color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; }
+  .history-table td { color: var(--text-medium); }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover td { background-color: rgba(255, 255, 255, 0.03); color: var(--text-light); }
+  .history-table td:first-child, .history-table th:first-child { padding-left: 25px; }
+  .history-table td:last-child, .history-table th:last-child { padding-right: 25px; text-align: center; }
+  .btn-delete-key { background: none; border: none; color: var(--text-medium); cursor: pointer; font-size: 1.1rem; padding: 5px; transition: color 0.2s ease, transform 0.2s ease; }
+  .btn-delete-key:hover { color: var(--error-color); transform: scale(1.2); }
+
+  /* --- Formulários (Perfil, Modal) Redesenhados --- */
+  .profile-info { max-width: 600px; }
+  .form-group { margin-bottom: 25px; }
+  .form-group label { display: block; font-size: 0.9rem; color: var(--text-medium); margin-bottom: 8px; font-weight: 500; }
+  .form-group input { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: var(--secondary-dark); color: var(--text-light); transition: border-color 0.3s, box-shadow 0.3s; }
+  .form-group input:focus { outline: none; border-color: var(--accent-blue); background-color: var(--primary-dark); box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2); }
+  .form-group input[readonly] { background-color: rgba(74, 85, 104, 0.5); cursor: not-allowed; }
+  .btn, .btn-success, .btn-danger { background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%); color: white; padding: 12px 25px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); display: inline-flex; align-items: center; justify-content: center; }
+  .btn i, .btn-success i, .btn-danger i { margin-right: 8px; }
+  .btn:hover, .btn-success:hover, .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+  .btn-success { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+  .btn-danger { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
+
+  /* --- Modal Redesenhado --- */
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); animation: modalFadeIn 0.3s ease-out; }
+  @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-content { background: var(--secondary-dark); padding: 35px; border-radius: 12px; width: 100%; max-width: 550px; position: relative; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); animation: modalSlideIn 0.4s ease-out; }
+  @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-content h3 { font-size: 1.6rem; color: var(--text-light); margin-bottom: 25px; font-weight: 600; display: flex; align-items: center; }
+  .modal-content h3 i { margin-right: 10px; color: var(--accent-blue); }
+  .close-btn { position: absolute; top: 15px; right: 15px; font-size: 1.8rem; color: var(--text-medium); cursor: pointer; transition: color 0.3s, transform 0.3s; background: none; border: none; padding: 5px; line-height: 1; }
+  .close-btn:hover { color: #fff; transform: rotate(90deg); }
+  .modal-content .message { margin-top: 20px; font-size: 0.95rem; color: var(--success-color); background-color: rgba(72, 187, 120, 0.1); border: 1px solid rgba(72, 187, 120, 0.3); padding: 10px 15px; border-radius: 8px; }
+  .modal-content .message strong { font-weight: 600; }
+  .modal-content .message pre { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; font-size: 0.85em; overflow-x: auto; margin-top: 10px; border: 1px solid var(--border-color); color: var(--text-light); }
+  .modal-content .message a { color: var(--accent-blue); text-decoration: underline; }
+  .modal-content .message a:hover { color: lighten(var(--accent-blue), 10%); }
+  .modal-content .message[style*="color: rgb(229, 62, 62)"], .modal-content .message.error { color: var(--error-color); background-color: rgba(245, 101, 101, 0.1); border-color: rgba(245, 101, 101, 0.3); }
+
+/* Estilos para botões de cópia dentro do modal */
+  .copy-button-inline { /* Botão ao lado da chave API */
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-medium);
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+    vertical-align: middle; /* Alinha com o texto */
+    transition: all 0.2s ease;
+  }
+  .copy-button-inline:hover {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+  }
+   .copy-button-inline:disabled {
+      background: var(--success-color);
+      color: #fff;
+      border-color: var(--success-color);
+      cursor: default;
+   }
+
+  .copy-button-modal { /* Botão para o bloco curl no modal */
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--secondary-dark);
+    color: var(--text-medium);
+    border: 1px solid var(--border-color);
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    z-index: 5;
+  }
+  .modal-content pre:hover .copy-button-modal { /* Mostra no hover do pre */
+      opacity: 1;
+  }
+  .copy-button-modal:hover {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+  }
+  .copy-button-modal:disabled {
+      background: var(--success-color);
+      color: #fff;
+      border-color: var(--success-color);
+      cursor: default;
+      opacity: 1;
+  }
+  /* --- Documentação Re-estilizada --- */
+  #documentation-section {
+      background: var(--card-bg); /* Fundo consistente */
+      padding: 30px; border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+   /* Título principal da documentação */
+   #documentation-section > h3 {
+       font-size: 1.8rem; color: var(--text-light); margin-bottom: 30px;
+       padding-bottom: 15px; border-bottom: 1px solid var(--border-color);
+       font-weight: 600; /* Mais peso */
+   }
+    #documentation-section > h3 > i { color: var(--accent-purple); } /* Ícone roxo */
+
+   /* Subseções da documentação (h4) */
+   .doc-subsection {
+       background-color: rgba(255, 255, 255, 0.03); /* Fundo sutil */
+       border: 1px solid var(--border-color);
+       border-radius: 10px;
+       padding: 25px;
+       margin-bottom: 30px;
+       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+   }
+    .doc-subsection h4 {
+        color: var(--accent-purple);
+        margin-top: 0; /* Remove margem superior padrão */
+        margin-bottom: 20px; font-size: 1.4rem; font-weight: 600;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(var(--border-color), 0.5);
+        display: flex; align-items: center;
+    }
+     .doc-subsection h4 i { /* Ícone para h4 */
+         margin-right: 10px;
+         font-size: 1.2rem;
+         opacity: 0.8;
+     }
+
+    /* Títulos menores (h5) */
+    .doc-subsection h5 {
+        color: var(--accent-blue);
+        margin-top: 25px; margin-bottom: 12px; font-size: 1.15rem; font-weight: 600;
+    }
+   /* Texto e listas */
+   .doc-subsection p, .doc-subsection ul, .doc-subsection ol {
+       color: var(--text-medium); line-height: 1.7; margin-bottom: 15px; font-size: 0.95rem;
+   }
+    .doc-subsection ul, .doc-subsection ol { padding-left: 25px; }
+    .doc-subsection li { margin-bottom: 10px; }
+    .doc-subsection code:not(.language-bash):not(.language-javascript):not(.language-json) { /* Código inline */
+        background-color: rgba(255, 255, 255, 0.1); color: var(--text-light);
+        padding: 3px 6px; border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em;
+    }
+    .doc-subsection strong { color: var(--text-light); font-weight: 600; }
+    .doc-subsection a { color: var(--accent-blue); text-decoration: none; }
+    .doc-subsection a:hover { text-decoration: underline; }
+
+   /* Blocos de Código (Estilo Terminal) */
+   .doc-subsection pre {
+     background-color: #161b22; /* Fundo terminal mais escuro */
+     color: #c9d1d9; /* Texto cinza claro */
+     border: 1px solid #30363d; /* Borda sutil */
+     border-radius: 8px;
+     padding: 18px; overflow-x: auto; margin: 20px 0;
+     font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+     font-size: 0.9rem; line-height: 1.6;
+     box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+     position: relative;
+   }
+    /* Botão Copiar Real (Estilos) */
+   .copy-button {
+       position: absolute;
+       top: 10px; /* Ajuste a posição conforme necessário */
+       right: 10px;
+       background: var(--secondary-dark);
+       color: var(--text-medium);
+       border: 1px solid var(--border-color);
+       padding: 4px 10px;
+       font-size: 0.8rem;
+       font-weight: 600;
+       border-radius: 6px;
+       cursor: pointer;
+       opacity: 0.6; /* Começa um pouco transparente */
+       transition: all 0.2s ease;
+       z-index: 5; /* Garante que fique acima do código */
+   }
+    .doc-subsection pre:hover .copy-button {
+       opacity: 1; /* Fica opaco no hover do <pre> */
+   }
+    .copy-button:hover {
+       background: var(--accent-blue);
+       color: #fff;
+       border-color: var(--accent-blue);
+   }
+    .copy-button:active {
+       transform: scale(0.95);
+   }
+    .copy-button:disabled { /* Estilo quando copiado */
+       background: var(--success-color);
+       color: #fff;
+       border-color: var(--success-color);
+       cursor: default;
+       opacity: 1;
+   }
+
+  .doc-subsection code { /* Reset para código dentro de pre */
+    font-family: inherit; font-size: inherit; color: inherit;
+    background: none; padding: 0; display: block;
+   }
+    /* Cores básicas para sintaxe */
+    .doc-subsection code .keyword { color: #569cd6; }
+    .doc-subsection code .string { color: #ce9178; }
+    .doc-subsection code .comment { color: #6a9955; }
+    .doc-subsection code .variable { color: #9cdcfe; }
+    .doc-subsection code .function { color: #dcdcaa; }
+    .doc-subsection code .operator { color: #d4d4d4; }
+    .doc-subsection code .number { color: #b5cea8; }
+
+    /* Seção de Segurança Específica */
+    .security-tips {
+        border-left: 4px solid var(--warning-color); /* Borda amarela */
+        background-color: rgba(236, 201, 75, 0.05); /* Fundo amarelo sutil */
+        padding: 20px;
+        margin-top: 30px;
+        border-radius: 8px;
+    }
+     .security-tips h4 {
+         color: var(--warning-color); /* Título amarelo */
+         margin-top: 0;
+         border-bottom: none; /* Remove borda padrão */
+         padding-bottom: 0;
+         margin-bottom: 15px;
+     }
+      .security-tips h4 i { color: var(--warning-color); } /* Ícone amarelo */
+     .security-tips ul { list-style: none; padding-left: 0; }
+     .security-tips li {
+         color: var(--text-medium);
+         margin-bottom: 12px;
+         padding-left: 25px;
+         position: relative;
+     }
+      .security-tips li::before { /* Ícone para cada item */
+          content: '\f071'; /* Font Awesome warning icon */
+          font-family: 'Font Awesome 6 Free';
+          font-weight: 900;
+          position: absolute;
+          left: 0;
+          top: 2px;
+          color: var(--warning-color);
+          opacity: 0.7;
+      }
+
+
+  /* --- Botão Hambúrguer e Overlay --- */
+  #mobile-menu-toggle {
+    display: none; /* Escondido por padrão */
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001; /* Acima da sidebar */
+    background: var(--secondary-dark);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  #mobile-menu-toggle:hover {
+    background-color: var(--accent-blue);
+  }
+
+  #mobile-overlay {
+    display: none; /* Escondido por padrão */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 999; /* Abaixo da sidebar, acima do conteúdo */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-out;
+  }
+
+  /* Ajustes finais de responsividade */
+  /* --- Responsividade Mobile (Refinada) --- */
+  @media (max-width: 768px) {
+    body {
+      display: block !important; /* Garante o empilhamento, sobrescrevendo o flex global */
+      font-size: 14px; /* Reduz um pouco a fonte base */
+    }
+    #mobile-menu-toggle {
+      display: block; /* Mostra o botão */
+    }
+    #mobile-overlay {
+      display: block; /* Permite que o overlay apareça */
+    }
+    .sidebar {
+      position: fixed; /* Volta a ser fixed */
+      height: 100vh; /* Altura total */
+      width: 260px; /* Largura definida */
+      transform: translateX(-100%); /* Escondida fora da tela */
+      box-shadow: 3px 0 15px rgba(0, 0, 0, 0.3); /* Sombra mais pronunciada */
+      padding: 25px; /* Restaura padding original ou ajustado */
+      margin-bottom: 0; /* Remove margem */
+      z-index: 1000; /* Garante que fique acima do overlay */
+    }
+     .sidebar .logo {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+     }
+     .sidebar .logo h1 { font-size: 1.4rem; } /* Menor título */
+     .sidebar ul li { margin: 5px 0; } /* Menos espaço entre itens */
+     .sidebar ul li a { padding: 10px 12px; } /* Menos padding nos links */
+     .sidebar ul li:last-child {
+        margin-top: 15px;
+        padding-top: 15px;
+     }
+
+    .main-content {
+      margin-left: 0; /* Mantém sem margem */
+      width: 100%; /* Mantém largura total */
+      padding: 15px;
+      padding-top: 60px; /* Adiciona espaço para o botão hambúrguer fixo */
+      overflow-y: auto; /* Restaura scroll se necessário */
+    }
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px; /* Menos gap */
+      margin-bottom: 25px; /* Menos margem */
+      padding-bottom: 10px;
+    }
+/* --- Estilos Botão Copiar --- */
+  .btn-copy-key {
+    background: none;
+    border: none;
+    color: var(--text-medium);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 5px;
+    transition: color 0.2s ease, transform 0.2s ease;
+    vertical-align: middle; /* Alinha com o botão de deletar */
+  }
+  .btn-copy-key:hover {
+    color: var(--accent-blue);
+    transform: scale(1.2);
+  }
+  .btn-copy-key i.fa-check { /* Estilo para ícone de sucesso */
+      color: var(--success-color);
+  }
+     .header h2 { font-size: 1.6rem; } /* Menor título */
+     .header .user-info { width: 100%; justify-content: space-between; } /* Ocupa espaço */
+     .header .user-info span { font-size: 0.9rem; }
+     .header .user-info .btn { padding: 8px 15px; font-size: 0.9rem; }
+
+    .dashboard-grid {
+      grid-template-columns: 1fr; /* Mantém uma coluna */
+      gap: 15px; /* Menos gap */
+      margin-bottom: 25px;
+    }
+     .card { padding: 15px; }
+     .card i { font-size: 2rem; margin-bottom: 10px; }
+     .card h4 { font-size: 0.95rem; margin-bottom: 5px; }
+     .card p { font-size: 1.6rem; }
+
+    .section { margin-bottom: 25px; } /* Menos margem entre seções */
+    .section h3 { font-size: 1.4rem; margin-bottom: 15px; padding-bottom: 8px; }
+
+    /* Tabela mais compacta */
+    .history-table { font-size: 0.85rem; } /* Reduz fonte base da tabela */
+    .history-table th, .history-table td { padding: 10px 12px; }
+    .history-table td:first-child, .history-table th:first-child { padding-left: 15px; }
+    .history-table td:last-child, .history-table th:last-child { padding-right: 15px; }
+    .btn-delete-key { font-size: 1rem; }
+
+    /* Modal mais compacto */
+    .modal-content { max-width: 95%; padding: 20px; }
+    .modal-content h3 { font-size: 1.3rem; margin-bottom: 20px; }
+    .close-btn { font-size: 1.6rem; top: 10px; right: 10px; }
+    .modal-content .message { font-size: 0.9rem; padding: 8px 12px; }
+
+    /* Formulários mais compactos */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { font-size: 0.85rem; margin-bottom: 5px; }
+    .form-group input { padding: 10px 12px; font-size: 0.95rem; }
+    .btn, .btn-success, .btn-danger { padding: 10px 20px; font-size: 0.95rem; }
+
+    /* Documentação mais compacta */
+    #documentation-section { padding: 15px; }
+    #documentation-section > h3 { font-size: 1.4rem; margin-bottom: 20px; }
+    .doc-subsection { padding: 15px; margin-bottom: 20px; }
+    .doc-subsection h4 { font-size: 1.1rem; margin-bottom: 15px; }
+    .doc-subsection h5 { font-size: 1rem; margin-bottom: 10px; }
+    .doc-subsection p, .doc-subsection ul, .doc-subsection ol { font-size: 0.9rem; line-height: 1.6; }
+    .doc-subsection pre { padding: 12px; font-size: 0.8rem; }
+    .copy-button { padding: 3px 8px; font-size: 0.75rem; top: 8px; right: 8px; }
+  }
+
+  /* Estilos quando a sidebar mobile está aberta */
+  body.sidebar-mobile-open .sidebar {
+    transform: translateX(0); /* Mostra a sidebar */
+  }
+  body.sidebar-mobile-open #mobile-overlay {
+    opacity: 1; /* Mostra o overlay */
+    pointer-events: auto; /* Permite clicar no overlay para fechar */
+  }
+
+</style>
+<!-- Mantém o restante do HTML (body, sidebar, main-content, seções, modais) como estava -->
+<!-- O JavaScript (main.js) não precisa ser alterado para estas mudanças visuais -->
+<script src="config.js"></script> <!-- Caminho correto -->
+<script src="main.js"></script> <!-- Caminho correto -->
+</head>
+<body>
+<button id="mobile-menu-toggle" aria-label="Abrir menu">
+  <i class="fas fa-bars"></i>
+</button>
+<div id="mobile-overlay"></div>
+<div class="sidebar">
+<div class="logo">
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Path data omitido para brevidade -->
+</svg>
+<h1>API Key Manager</h1>
+</div>
+<ul>
+<li><a href="#" id="link-dashboard" class="active"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+<li><a href="#" id="link-open-key-modal"><i class="fas fa-key"></i> <span>Gerar API Key</span></a></li>
+<li><a href="#" id="link-history"><i class="fas fa-history"></i> <span>Histórico</span></a></li>
+<li><a href="#" id="link-profile"><i class="fas fa-user"></i> <span>Perfil</span></a></li>
+<li><a href="#" id="link-documentation"><i class="fas fa-book"></i> <span>Documentação</span></a></li>
+<li><a href="frontend/documentation.html" target="_blank" class="nav-link"><i class="fas fa-book-open"></i> <span>Documentação Completa</span></a></li>
+<li><a href="#" id="link-group-key"><i class="fas fa-object-group"></i> <span>Gerenciar Grupos</span></a></li>
+<li><a href="#" id="link-logout"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></a></li>
+</ul>
+</div>
+
+<div class="main-content">
+  <div class="header">
+    <!-- Botão Hambúrguer (visível apenas em mobile) -->
+    <!-- Movido para fora do header, logo após o body -->
+    <h2>Painel de Controle</h2>
+    <div class="user-info">
+      <span id="welcome-message">Bem-vindo, </span>
+      <button class="btn" id="btn-get-api-key">
+        <i class="fas fa-key"></i> Get API Key
+      </button>
+    </div>
+  </div>
+
+  <!-- Seção do Dashboard -->
+  <div class="section active" id="dashboard-section">
+    <h3><i class="fas fa-tachometer-alt"></i> Visão Geral</h3>
+    <div class="dashboard-grid">
+      <div class="card">
+        <i class="fas fa-key"></i>
+        <h4>Total de API Keys</h4>
+        <p id="api-keys-count">0</p>
+      </div>
+      <div class="card">
+        <i class="fas fa-object-group"></i> <!-- Ícone alterado -->
+        <h4>Grupos de Projetos</h4> <!-- Título alterado -->
+        <p id="project-group-count">0</p> <!-- ID alterado -->
+      </div>
+      <div class="card">
+        <i class="fas fa-shield-alt"></i>
+        <h4>Dados Seguros</h4>
+        <p id="secure-data-count">0</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção de Histórico -->
+  <div class="section" id="history-section">
+    <h3><i class="fas fa-history"></i> Histórico de API Keys</h3>
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Chave API</th>
+          <th>Projeto</th>
+          <th>Data de Criação</th>
+          <th class="action-header">Ações</th></tr>
+      </thead>
+      <tbody id="api-key-history">
+        <!-- Linhas preenchidas por JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Seção de Perfil -->
+  <div class="section" id="profile-section">
+    <h3><i class="fas fa-user"></i> Perfil</h3>
+    <div class="profile-info">
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="profile-username" readonly>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="profile-email" readonly>
+      </div>
+      <button class="btn" id="btn-edit-profile"><i class="fas fa-edit"></i> Editar Perfil</button>
+<button class="btn" id="btn-change-password" style="margin-left: 10px; background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);"><i class="fas fa-lock"></i> Alterar Senha</button>
+    </div>
+  </div>
+  <!-- Modal de confirmação de edição de perfil -->
+  <div class="modal" id="profile-confirm-modal">
+    <div class="modal-content">
+      <span class="close-btn" id="close-profile-confirm">×</span>
+      <h3>Confirmação de Edição</h3>
+      <p style="font-size:1.1em; color: var(--text-medium); margin:18px 0;"> <!-- Cor ajustada -->
+        Tem certeza que deseja <b>mudar seu nome ou email</b>?<br>
+        <span style="color:var(--error-color); font-weight:bold;">Se esquecer, não poderá modificar novamente!</span>
+      </p>
+      <button class="btn btn-danger" id="confirm-edit-profile">Sim, quero editar</button>
+      <button class="btn" id="cancel-edit-profile" style="background: var(--secondary-dark); margin-left: 10px;">Cancelar</button> <!-- Botão cancelar estilizado -->
+    </div>
+  </div>
+  <!-- Modal de edição de perfil -->
+  <div class="modal" id="profile-edit-modal">
+    <div class="modal-content">
+      <span class="close-btn" id="close-profile-edit">×</span>
+      <h3>Editar Perfil</h3>
+      <form id="profile-edit-form">
+        <div class="form-group">
+          <label for="edit-username">Novo nome</label>
+          <input type="text" id="edit-username" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-email">Novo email</label>
+          <input type="email" id="edit-email" required>
+        </div>
+        <button type="submit" class="btn btn-success">Salvar</button>
+      </form>
+      <p class="message" id="profile-edit-message"></p>
+    </div>
+  </div>
+
+  <!-- Seção de Chat (Nova) -->
+  <div class="section" id="chat-section">
+    <h3><i class="fas fa-comments"></i> Chat</h3>
+    <p>Funcionalidade de chat em breve...</p>
+    <!-- Aqui viria a interface do chat -->
+  </div>
+
+  <!-- Modal de Geração de API Key (Mantido) -->
+  <div class="modal" id="api-key-modal">
+    <div class="modal-content">
+      <span class="close-btn" id="btn-close-modal">×</span>
+      <h3><i class="fas fa-key"></i> Gerar Nova API Key</h3>
+      <div class="form-group">
+        <label for="api-key-project">Nome do Projeto</label>
+        <input type="text" id="api-key-project" placeholder="Digite o nome do projeto" required>
+      </div>
+      <!-- Adiciona o elemento para mensagens de status/erro -->
+      <p id="api-key-message" class="message" style="margin-top: 15px; display: none;"></p>
+<div id="api-key-result" class="message" style="margin-top: 15px; display: none; text-align: left; background-color: rgba(255, 255, 255, 0.05); border-color: var(--border-color);">
+        <!-- O resultado da geração da chave será inserido aqui pelo JavaScript -->
+      </div>
+      <button class="btn" id="btn-generate-key"><i class="fas fa-plus"></i> Gerar API Key</button>
+    </div>
+<!-- Modal de Alteração de Senha -->
+  <div class="modal" id="change-password-modal">
+    <div class="modal-content">
+      <span class="close-btn" id="close-change-password">×</span>
+      <h3><i class="fas fa-lock"></i> Alterar Senha</h3>
+      <form id="change-password-form">
+        <div class="form-group">
+          <label for="current-password">Senha Atual</label>
+          <input type="password" id="current-password" placeholder="Digite sua senha atual" required>
+        </div>
+        <div class="form-group">
+          <label for="new-password">Nova Senha</label>
+          <input type="password" id="new-password" placeholder="Digite a nova senha" required>
+        </div>
+        <div class="form-group">
+          <label for="confirm-new-password">Confirmar Nova Senha</label>
+          <input type="password" id="confirm-new-password" placeholder="Confirme a nova senha" required>
+        </div>
+        <button type="submit" class="btn btn-success">Salvar Nova Senha</button>
+      </form>
+      <p class="message" id="change-password-message"></p>
+    </div>
+  </div>
+    </div>
+<!-- Seção de Gerenciamento de Chaves de Grupo (Nova) -->
+    <div class="section" id="group-key-section">
+      <h3><i class="fas fa-object-group"></i> Gerenciar Chaves de Grupo</h3>
+      <p>Associe suas Chaves API a uma Chave de Grupo para compartilhar dados de login entre diferentes projetos/aplicações, se necessário. Uma Chave API pode pertencer a apenas um grupo por vez.</p>
+      <table class="history-table"> <!-- Reutilizando estilo da tabela de histórico -->
+        <thead>
+          <tr>
+            <th>Projeto</th>
+            <th>Chave API</th>
+            <th>Chave de Grupo Atual</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="group-key-table-body">
+          <!-- Linhas preenchidas por JS -->
+          <!-- Exemplo de linha:
+          <tr>
+            <td>Meu Site Legal</td>
+            <td>key-abc...</td>
+            <td>group-123... (ou 'Nenhum')</td>
+            <td>
+              <button class="btn btn-sm btn-manage-group" data-key="key-abc...">Gerenciar Grupo</button>
+            </td>
+          </tr>
+          -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal para Gerenciar Chave de Grupo (Novo) -->
+    <div class="modal" id="manage-group-key-modal">
+      <div class="modal-content">
+        <span class="close-btn" id="close-manage-group-modal">×</span>
+        <h3><i class="fas fa-object-group"></i> Gerenciar Chave de Grupo para <span id="manage-group-project-name"></span></h3>
+        <p>Chave API: <code id="manage-group-api-key"></code></p>
+        <p>Chave de Grupo Atual: <code id="manage-group-current-key">Nenhum</code></p>
+        <hr style="border-color: var(--border-color); margin: 20px 0;">
+
+        <div class="form-group">
+            <label>Opções:</label>
+            <button class="btn btn-sm" id="btn-generate-new-group-key"><i class="fas fa-plus"></i> Gerar Nova Chave de Grupo</button>
+            <button class="btn btn-sm" id="btn-associate-existing-group-key" style="margin-left: 10px;"><i class="fas fa-link"></i> Associar a Grupo Existente</button>
+            <button class="btn btn-sm btn-danger" id="btn-remove-group-association" style="margin-left: 10px;"><i class="fas fa-unlink"></i> Remover Associação</button>
+        </div>
+
+        <!-- Campo para associar chave existente (inicialmente oculto) -->
+        <div class="form-group" id="associate-existing-group-div" style="display: none;">
+            <label for="existing-group-key-input">Chave de Grupo Existente:</label>
+            <input type="text" id="existing-group-key-input" placeholder="Cole a chave de grupo existente aqui">
+             <button class="btn btn-sm btn-success" id="btn-confirm-association" style="margin-top: 10px;">Confirmar Associação</button>
+        </div>
+
+        <p class="message" id="manage-group-key-message"></p>
+      </div>
+    </div>
+
+    <!-- Seção de Documentação Reestruturada -->
+    <div class="section" id="documentation-section">
+      <h3><i class="fas fa-book"></i> Documentação de Integração</h3>
+&lt;!-- Guia Rápido Inserido --&gt;
+      &lt;div class="doc-subsection"&gt;
+          &lt;h4&gt;&lt;i class="fas fa-bolt"&gt;&lt;/i&gt; Guia Rápido de Integração&lt;/h4&gt;
+          &lt;p&gt;Integre o Neuralogins à sua aplicação seguindo estes passos principais:&lt;/p&gt;
+          &lt;ol&gt;
+              &lt;li&gt;&lt;strong&gt;Obtenha sua API Key:&lt;/strong&gt; Gere uma API Key única para sua aplicação aqui no painel (seção "Gerar API Key"). Esta chave autentica sua aplicação cliente.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Integre com o SDK:&lt;/strong&gt; Utilize nosso SDK JavaScript &lt;code&gt;neuralogins-client&lt;/code&gt;. Instale-o (&lt;code&gt;npm install neuralogins-client&lt;/code&gt;) e inicialize-o com sua API Key da Aplicação e a URL da API Neuralogins.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Implemente o Fluxo de Autenticação:&lt;/strong&gt; Use os métodos do SDK (&lt;code&gt;registerEndUser&lt;/code&gt;, &lt;code&gt;loginEndUser&lt;/code&gt;, &lt;code&gt;logout&lt;/code&gt;, etc.) para gerenciar o registro, login e logout dos seus usuários finais.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Gerenciamento de Tokens:&lt;/strong&gt; O SDK cuida automaticamente do armazenamento seguro e da renovação (refresh) dos tokens JWT no lado do cliente após o login, simplificando o acesso a rotas protegidas.&lt;/li&gt;
+          &lt;/ol&gt;
+          &lt;p&gt;Para um guia completo e exemplos detalhados, consulte nossa documentação completa.&lt;/p&gt;
+          &lt;a href="frontend/documentation.html" target="_blank" class="btn" style="margin-top: 15px; background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);"&gt;
+              &lt;i class="fas fa-external-link-alt"&gt;&lt;/i&gt; Ver Documentação Detalhada
+          &lt;/a&gt;
+      &lt;/div&gt;
+      &lt;!-- Fim Guia Rápido --&gt;
+
+      <div class="doc-subsection">
+          <h4><i class="fas fa-rocket"></i> Visão Geral e Funcionalidades do Painel</h4>
+          <p>Bem-vindo ao painel do Neuralogins! Aqui você pode gerenciar a integração do nosso sistema de login nas suas próprias aplicações. As principais funcionalidades disponíveis para você são:</p>
+          <ul>
+              <li><strong>Gerenciar Chaves de API:</strong> Crie, visualize e exclua as API Keys que suas aplicações usarão para se comunicar com o Neuralogins. Cada chave é única para uma aplicação e deve ser mantida em segredo no backend.</li>
+              <li><strong>Visualizar Histórico de Eventos:</strong> Acompanhe os eventos de login e outras atividades relacionadas aos usuários finais das suas aplicações.</li>
+              <li><strong>Gerenciar Usuários Finais:</strong> (Seção futura) Em breve, você poderá visualizar e gerenciar os usuários finais que se autenticam através das suas aplicações.</li>
+              <li><strong>Documentação:</strong> Consulte este guia para entender como integrar o Neuralogins nas suas aplicações.</li>
+          </ul>
+          <p>O fluxo geral de integração envolve:</p>
+          <ol>
+              <li><strong>Obter uma API Key:</strong> Gere uma API Key única para cada aplicação que usará o Neuralogins.</li>
+              <li><strong>Integrar sua Aplicação:</strong> Use a API Key no backend da sua aplicação para se comunicar com a API Neuralogins, preferencialmente usando nosso SDK oficial.</li>
+              <li><strong>Autenticar Usuários Finais:</strong> Implemente o registro e login de usuários finais na sua aplicação utilizando os métodos fornecidos pela API/SDK.</li>
+          </ol>
+      </div>
+
+      <div class="doc-subsection">
+          <h4><i class="fas fa-key"></i> Gerenciando suas Chaves de API</h4>
+          <p>Sua <strong>API Key da Aplicação</strong> é essencial para conectar sua aplicação ao Neuralogins. Ela identifica sua aplicação cliente (como seu website ou app mobile) e é usada para autenticar as requisições que sua aplicação faz para nossos serviços.</p>
+          <p>Você pode gerar e gerenciar suas API Keys diretamente neste painel. Cada API Key é única para uma aplicação e deve ser tratada como um segredo.</p>
+          <h5>Como Obter e Gerenciar API Keys:</h5>
+          <ul>
+              <li>Vá para a seção "Chaves de API" (no menu lateral).</li>
+              <li>Clique em "Gerar Nova API Key" para criar uma chave para uma nova aplicação.</li>
+              <li>Sua nova API Key será exibida <strong>apenas uma vez</strong>. Copie-a imediatamente e armazene-a em um local seguro no <strong>backend</strong> da sua aplicação.</li>
+              <li>Você pode ver uma lista das suas API Keys ativas na mesma seção. Por segurança, apenas os IDs parciais são exibidos.</li>
+              <li>Se uma API Key for comprometida ou não for mais necessária, você pode excluí-la nesta seção.</li>
+          </ul>
+          <p><strong>CRÍTICO: Mantenha sua API Key segura no backend da sua aplicação. Nunca a exponha no código frontend (navegador, app)!</strong></p>
+      </div>
+
+      <div class="doc-subsection">
+          <h4><i class="fas fa-layer-group"></i> Isolamento de Dados com Project Group Key</h4>
+          <p>Para garantir a segurança e o isolamento dos dados dos seus usuários finais, o Neuralogins utiliza o conceito de <strong>Project Group Key</strong>. Cada API Key que você gera está associada a um Project Group Key específico.</p>
+          <p>Isso significa que os usuários finais autenticados através de uma API Key só terão seus dados (como informações de login e dados seguros associados) visíveis e acessíveis dentro do grupo definido por aquela Project Group Key. Se você tiver múltiplas aplicações (com API Keys diferentes), os usuários de uma aplicação não verão os dados dos usuários de outra, mesmo que usem o mesmo email.</p>
+          <p>Pense no Project Group Key como um contêiner seguro para os dados dos usuários de um conjunto específico de suas aplicações.</p>
+      </div>
+
+      <div class="doc-subsection">
+          <h4><i class="fas fa-code"></i> Integrando com sua Aplicação (Via SDK)</h4>
+          <p>A maneira recomendada e mais segura de integrar sua aplicação com o Neuralogins é utilizando nossa biblioteca JavaScript oficial: <code>neuralogins-client</code>.</p>
+          <p>O SDK agora gerencia <strong>automaticamente</strong> a sua <strong>API Key da Aplicação</strong> e os tokens de segurança (JWT e Refresh Token), simplificando drasticamente a integração.</p>
+
+          <h5>Passos para Integração:</h5>
+          <ol>
+              <li><strong>Instale o SDK:</strong> Se sua aplicação usa Node.js (backend) ou um framework frontend com suporte a módulos (como React, Vue, Angular), instale o pacote via npm:
+                  <pre><code class="language-bash">npm install neuralogins-client</code></pre>
+              </li>
+              <li><strong>Importe e Inicialize:</strong> Importe o SDK e inicialize-o com sua API Key da Aplicação e a URL base da sua API. A API Key deve ser carregada de forma segura (ex: variáveis de ambiente no backend).
+                  <pre><code class="language-javascript">// Importe o cliente
+import NeuraloginsClient from 'neuralogins-client'; // Para módulos ES6
+// Ou: const NeuraloginsClient = require('neuralogins-client'); // Para CommonJS (Node.js)
+
+// Substitua pela API Key gerada neste painel para esta aplicação específica
+const YOUR_APPLICATION_API_KEY = 'SUA_API_KEY_GERADA_AQUI'; // Mantenha isso seguro!
+
+// Substitua pela URL base da sua API Neuralogins
+const NEURALOGINS_API_URL = 'http://localhost:5000/api'; // Exemplo
+
+// Inicialize o cliente
+const nlClient = new NeuraloginsClient(YOUR_APPLICATION_API_KEY, NEURALOGINS_API_URL);
+
+// Agora você pode usar a instância 'nlClient' para chamar os métodos de autenticação e gerenciamento de usuários finais.
+</code></pre>
+              </li>
+              <li><strong>Use os Métodos do SDK (Autenticação Automática):</strong> Utilize os métodos fornecidos pelo objeto <code>nlClient</code>. O SDK cuidará de enviar a API Key (para rotas públicas) e o token JWT (para rotas protegidas) automaticamente. Ele também gerencia o Refresh Token para renovar a sessão quando necessário.
+
+                  <h5>Exemplos de Uso:</h5>
+
+                  <strong>Registro de Usuário:</strong>
+                  <pre><code class="language-javascript">try {
+  const userData = await nlClient.registerEndUser('Nome do Usuário', 'email@example.com', 'senhaSegura123');
+  console.log('Usuário registrado:', userData);
+} catch (error) {
+  console.error('Erro no registro:', error);
+}
+</code></pre>
+
+                  <strong>Login de Usuário:</strong>
+                  <pre><code class="language-javascript">try {
+  const loginData = await nlClient.loginEndUser('email@example.com', 'senhaSegura123');
+  console.log('Login bem-sucedido:', loginData);
+  // A SDK armazena os tokens internamente após o login
+} catch (error) {
+  console.error('Erro no login:', error);
+}
+</code></pre>
+
+                  <strong>Acessando Rota Protegida:</strong>
+                  <p>Após o login, simplesmente chame os métodos da SDK para acessar endpoints protegidos. A SDK adicionará o cabeçalho de autorização e gerenciará o refresh de token automaticamente.</p>
+                  <pre><code class="language-javascript">try {
+  const secureData = await nlClient.getSecureData(); // Exemplo de chamada a rota protegida
+  console.log('Dados seguros:', secureData);
+  // Se o token expirar, a SDK tentará renová-lo e repetir a requisição
+} catch (error) {
+  console.error('Erro ao obter dados seguros:', error);
+  // Erros de autenticação (após falha no refresh) serão lançados aqui
+}
+</code></pre>
+
+                  <strong>Logout:</strong>
+                  <p>Para fazer logout, chame o método <code>logout</code>. Isso limpará os tokens locais e notificará o servidor para invalidar o Refresh Token.</p>
+                  <pre><code class="language-javascript">try {
+  await nlClient.logout();
+  console.log('Logout bem-sucedido.');
+} catch (error) {
+  console.error('Erro no logout:', error);
+}
+</code></pre>
+
+                  <p>Consulte o <a href="https://github.com/Maicon501a/neuralogins/tree/main/sdk/neuralogins-client#readme" target="_blank" rel="noopener noreferrer">README completo do SDK `neuralogins-client`</a> para a lista completa de métodos e mais detalhes.</p>
+              </li>
+          </ol>
+          <p><strong>Lembre-se:</strong> A <code>apiKey</code> deve ser carregada de forma segura e a SDK gerencia os tokens automaticamente. Você não precisa manipular os tokens diretamente na sua aplicação cliente ao usar a SDK.</p>
+      </div>
+
+       <div class="doc-subsection security-tips">
+           <h4><i class="fas fa-shield-alt"></i> Considerações de Segurança</h4>
+           <ul>
+             <li><strong>HTTPS Obrigatório:</strong> Sempre use HTTPS para comunicação entre sua aplicação e a API Neuralogins em produção para proteger senhas e a API Key.</li>
+             <li><strong>Proteja sua API Key:</strong> A <code>apiKey</code> da aplicação é um segredo. Armazene-a de forma segura no backend da sua aplicação (ex: variáveis de ambiente) e nunca a exponha no código do lado do cliente.</li>
+             <li><strong>Senhas Fortes:</strong> Incentive ou force seus usuários finais a usarem senhas fortes.</li>
+             <li><strong>Validação de Token JWT:</strong> Após o login, sua aplicação receberá um token JWT. Seu backend deve validar este token (verificar assinatura e expiração) antes de confiar nele para autorizar acesso a recursos protegidos. O SDK `neuralogins-client` oferece uma função para isso.</li>
+             <li><strong>Rate Limiting e Brute Force:</strong> A API Neuralogins possui proteções básicas, mas considere implementar suas próprias camadas de segurança na sua aplicação cliente, se necessário.</li>
+           </ul>
+       </div>
+
+<div class="doc-subsection">
+        <h4><i class="fas fa-users"></i> Gerenciamento de Usuários Finais</h4>
+        <p>Esta seção detalha como gerenciar usuários finais da sua aplicação através da API.</p>
+
+        <h5><i class="fas fa-user-plus"></i> Registro de Usuário Final</h5>
+        <p>Registra um novo usuário final para a sua aplicação. Requer a <strong>API Key da Aplicação</strong> no cabeçalho <code>x-api-key</code>.</p>
+        <pre><code class="language-bash">curl -X POST \
+  http://localhost:3000/api/client/register \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: &lt;SUA_API_KEY&gt;' \
+  -d '{
+    "email": "&lt;EMAIL_DO_USUARIO&gt;",
+    "password": "&lt;SENHA_DO_USUARIO&gt;"
+}'</code></pre>
+
+        <h5><i class="fas fa-sign-in-alt"></i> Login de Usuário Final</h5>
+        <p>Autentica um usuário final existente. Requer a <strong>API Key da Aplicação</strong> no cabeçalho <code>x-api-key</code>. A resposta bem-sucedida inclui um token JWT no corpo da resposta.</p>
+        <pre><code class="language-bash">curl -X POST \
+  http://localhost:3000/api/client/login \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: &lt;SUA_API_KEY&gt;' \
+  -d '{
+    "email": "&lt;EMAIL_DO_USUARIO&gt;",
+    "password": "&lt;SENHA_DO_USUARIO&gt;"
+}'</code></pre>
+
+        <h5><i class="fas fa-user-times"></i> Exclusão de Usuário Final</h5>
+        <p>Exclui um usuário final específico. Requer a <strong>API Key da Aplicação</strong> no cabeçalho <code>x-api-key</code> e o <strong>ID do Usuário</strong> na URL.</p>
+        <pre><code class="language-bash">curl -X DELETE \
+  http://localhost:3000/api/client/user/&lt;ID_DO_USUARIO&gt; \
+  -H 'x-api-key: &lt;SUA_API_KEY&gt;'</code></pre>
+
+        <h5><i class="fas fa-lock"></i> Solicitação de Redefinição de Senha</h5>
+        <p>Inicia o processo de redefinição de senha para um usuário final. Requer a <strong>API Key da Aplicação</strong> no cabeçalho <code>x-api-key</code> e o <strong>email do usuário</strong> no corpo da requisição.</p>
+        <pre><code class="language-bash">curl -X POST \
+  http://localhost:3000/api/client/forgot-password \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: &lt;SUA_API_KEY&gt;' \
+  -d '{
+    "email": "&lt;EMAIL_DO_USUARIO&gt;"
+}'</code></pre>
+
+        <h5><i class="fas fa-key"></i> Confirmação de Redefinição de Senha</h5>
+        <p>Confirma a redefinição de senha usando o token recebido por email. Requer o <strong>token de redefinição</strong> e a <strong>nova senha</strong> no corpo da requisição.</p>
+        <pre><code class="language-bash">curl -X POST \
+  http://localhost:3000/api/client/reset-password \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "token": "&lt;TOKEN_DE_REDEFINICAO&gt;",
+    "newPassword": "&lt;NOVA_SENHA&gt;"
+}'</code></pre>
+
+    </div>
+     </div>
+    <!-- Fim Seção de Documentação -->
+
+    </div> <!-- Fecha div.main-content -->
+    </body>
+    </html>
+<script>
+  // --- Lógica do Menu Mobile ---
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const mobileOverlay = document.getElementById('mobile-overlay');
+  const sidebar = document.querySelector('.sidebar'); // Seleciona a sidebar
+
+  if (mobileMenuToggle && mobileOverlay && sidebar) {
+    mobileMenuToggle.addEventListener('click', (event) => {
+      event.stopPropagation(); 
+      document.body.classList.toggle('sidebar-mobile-open');
+    });
+
+    mobileOverlay.addEventListener('click', () => {
+      document.body.classList.remove('sidebar-mobile-open');
+    });
+
+    const sidebarLinks = sidebar.querySelectorAll('a');
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        if (document.body.classList.contains('sidebar-mobile-open')) {
+          
+           document.body.classList.remove('sidebar-mobile-open');
+        }
+      });
+    });
+  }
+</script>

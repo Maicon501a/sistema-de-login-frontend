@@ -1,0 +1,244 @@
+<!-- Conteúdo da Documentação para ser injetado -->
+<h2>1. Introdução</h2>
+<p>Bem-vindo à documentação da <code>neuralogins-client</code>! Esta SDK JavaScript foi projetada para facilitar a integração da autenticação de usuários finais da sua aplicação com o serviço Neuralogins.</p>
+<p>Ela abstrai as chamadas de API REST, fornecendo métodos simples para registrar, autenticar e gerenciar usuários, além de acessar dados protegidos.</p>
+
+<h2>2. Pré-requisitos</h2>
+<ul>
+    <li><strong>Conta Neuralogins:</strong> Você precisa ter uma conta ativa no serviço Neuralogins.</li>
+    <li><strong>Chave de API (apiKey):</strong> Uma chave de API válida gerada no painel do Neuralogins para sua aplicação cliente.</li>
+    <li><strong>URL da API (apiUrl):</strong> A URL base do endpoint da API Neuralogins que sua aplicação utilizará.</li>
+    <li><strong>Node.js e npm/yarn:</strong> Necessário para instalar a SDK e, opcionalmente, para usar ferramentas de build (como Vite ou Parcel) se estiver construindo uma aplicação mais complexa.</li>
+</ul>
+
+<h2>3. Instalação</h2>
+<p>Instale a SDK usando npm ou yarn:</p>
+<pre><code class="language-bash">npm install neuralogins-client</code></pre>
+<p>ou</p>
+<pre><code class="language-bash">yarn add neuralogins-client</code></pre>
+
+<h2>4. Inicialização</h2>
+<p>Importe e inicialize o cliente em seu código JavaScript. Você precisará fornecer sua <code>apiUrl</code> e <code>apiKey</code>.</p>
+<pre><code class="language-javascript">
+import NeuraloginsClient from 'neuralogins-client';
+
+const apiUrl = 'SUA_API_URL'; // Substitua pela URL da sua API
+const apiKey = 'SUA_API_KEY'; // Substitua pela sua chave de API
+
+const neuralogins = new NeuraloginsClient({ apiUrl, apiKey });
+
+// Agora você pode usar a instância 'neuralogins' para chamar os métodos da SDK.
+// Exemplo: neuralogins.loginEndUser(email, senha);
+</code></pre>
+<p><strong>Importante:</strong> Nunca exponha sua <code>apiKey</code> diretamente no código do frontend em um ambiente de produção. Considere estratégias como o uso de variáveis de ambiente em um processo de build ou um backend intermediário (BFF - Backend For Frontend).</p>
+
+<h2>5. Exemplo de Uso (Código)</h2>
+<p>Abaixo estão exemplos de como usar os principais métodos da SDK. Para um exemplo interativo completo que você pode rodar, consulte o arquivo <code>frontend/documentation_example.js</code> e as instruções no arquivo HTML original (antes desta modificação) ou adapte o código abaixo para sua aplicação.</p>
+<pre><code class="language-javascript">
+// --- Exemplo de Registro ---
+async function handleRegister(email, password) {
+  try {
+    const userData = await neuralogins.registerEndUser(email, password);
+    console.log('Usuário registrado:', userData);
+    // Redirecionar ou atualizar UI
+  } catch (error) {
+    console.error('Erro no registro:', error.message);
+    // Exibir erro
+  }
+}
+
+// --- Exemplo de Login ---
+async function handleLogin(email, password) {
+  try {
+    const { accessToken, refreshToken, user } = await neuralogins.loginEndUser(email, password);
+    console.log('Login bem-sucedido:', { accessToken, refreshToken, user });
+    // Armazene os tokens de forma segura (ex: localStorage)
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    console.log('Tokens armazenados.');
+    // Redirecionar ou atualizar UI
+  } catch (error) {
+    console.error('Erro no login:', error.message);
+    // Exibir erro
+  }
+}
+
+// --- Exemplo de Logout ---
+async function handleLogout() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) {
+      console.log('Nenhum refreshToken encontrado para logout.');
+      // Limpar localmente mesmo assim, por segurança
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      // Atualizar UI
+      return;
+  }
+  try {
+    await neuralogins.logout(refreshToken);
+    console.log('Logout realizado no servidor.');
+  } catch (error) {
+    console.error('Erro no logout do servidor:', error.message);
+    // Mesmo com erro no servidor, limpar localmente
+  } finally {
+    // Sempre limpar tokens locais após tentativa de logout
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    console.log('Tokens locais removidos.');
+    // Redirecionar ou atualizar UI
+  }
+}
+
+// --- Exemplo de Acesso a Dados Protegidos com Refresh ---
+async function fetchProtectedData() {
+  let accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (!accessToken) {
+    console.error('Não autenticado. Faça login primeiro.');
+    // Redirecionar para login ou exibir mensagem
+    return;
+  }
+
+  try {
+    console.log('Tentando buscar dados com accessToken atual...');
+    const data = await neuralogins.getProtectedData(accessToken);
+    console.log('Dados protegidos recebidos:', data);
+    // Usar os dados
+  } catch (error) {
+    console.error('Erro ao buscar dados:', error.message, 'Status:', error.status);
+
+    // Se o erro for 401 (Não Autorizado), tenta renovar o token
+    if (error.status === 401 && refreshToken) {
+      console.log('AccessToken expirado ou inválido. Tentando renovar...');
+      try {
+        const { newAccessToken, newRefreshToken } = await neuralogins.refreshAccessToken(refreshToken);
+        console.log('Tokens renovados com sucesso.');
+
+        // Armazena os novos tokens
+        localStorage.setItem('accessToken', newAccessToken);
+        localStorage.setItem('refreshToken', newRefreshToken); // Atualiza o refresh token também
+        accessToken = newAccessToken; // Atualiza para a nova tentativa
+
+        // Tenta a chamada original novamente com o novo accessToken
+        console.log('Tentando buscar dados novamente com o novo accessToken...');
+        const data = await neuralogins.getProtectedData(accessToken);
+        console.log('Dados protegidos recebidos após refresh:', data);
+        // Usar os dados
+
+      } catch (refreshError) {
+        console.error('Falha ao renovar o token:', refreshError.message);
+        // Se o refresh falhar, provavelmente o refreshToken é inválido ou expirou.
+        // Limpar tokens e deslogar o usuário.
+        handleLogout(); // Chama a função de logout para limpar tudo
+        console.log('Usuário deslogado devido à falha no refresh.');
+        // Redirecionar para login
+      }
+    } else if (error.status === 403) {
+        // Erro 403 (Proibido) - O token pode ser válido, mas o usuário não tem permissão.
+        console.log('Acesso proibido ao recurso.');
+        // Tratar conforme necessário (ex: exibir mensagem de permissão negada)
+    } else {
+      // Outro tipo de erro
+      console.log('Erro inesperado ao buscar dados.');
+    }
+  }
+}
+
+// --- Exemplo de Acesso a Dados Protegidos (versão simples, sem refresh) ---
+async function fetchProtectedDataSimple() {
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) {
+    console.error('Não autenticado.');
+    return;
+  }
+  try {
+    const data = await neuralogins.getProtectedData(accessToken); // Passa o token
+    console.log('Dados protegidos:', data);
+    // Usar os dados
+  } catch (error) {
+    console.error('Erro ao buscar dados:', error.message);
+    if (error.status === 401 || error.status === 403) {
+       // Token inválido/expirado ou sem permissão.
+       console.log('Sessão inválida ou acesso negado. Considere implementar a lógica de refresh ou deslogar.');
+    }
+  }
+}
+
+// (Removido - A lógica agora está em fetchProtectedData e fetchProtectedDataSimple acima)
+  }
+}
+</code></pre>
+
+
+<h2>6. Referência Rápida dos Métodos da SDK</h2>
+<p>Aqui estão os principais métodos fornecidos pela SDK:</p>
+<table>
+    <thead>
+        <tr>
+            <th>Método</th>
+            <th>Descrição</th>
+            <th>Parâmetros</th>
+            <th>Retorno (Promise)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>NeuraloginsClient({ apiUrl, apiKey })</code></td>
+            <td>Construtor para inicializar a SDK.</td>
+            <td><code>options</code>: Objeto com <code>apiUrl</code> (string) e <code>apiKey</code> (string).</td>
+            <td>Instância de <code>NeuraloginsClient</code>.</td>
+        </tr>
+        <tr>
+            <td><code>registerEndUser(email, password)</code></td>
+            <td>Registra um novo usuário final.</td>
+            <td><code>email</code> (string), <code>password</code> (string).</td>
+            <td>Objeto com informações do usuário registrado (ex: <code>{ id, email }</code>).</td>
+        </tr>
+        <tr>
+            <td><code>loginEndUser(email, password)</code></td>
+            <td>Autentica um usuário final. Retorna tokens que <strong>devem ser armazenados manualmente</strong> pelo desenvolvedor.</td>
+            <td><code>email</code> (string), <code>password</code> (string).</td>
+            <td>Objeto contendo <code>accessToken</code> (string), <code>refreshToken</code> (string) e <code>user</code> (objeto).</td>
+        </tr>
+        <tr>
+            <td><code>logout(refreshToken)</code></td>
+            <td>Invalida o <code>refreshToken</code> no servidor. O desenvolvedor <strong>deve limpar os tokens</strong> do armazenamento local.</td>
+            <td><code>refreshToken</code> (string): O refresh token armazenado.</td>
+            <td>Resolvida se o logout no servidor for bem-sucedido.</td>
+        </tr>
+        <tr>
+            <td><code>getProtectedData(accessToken)</code></td>
+            <td>Exemplo de método para buscar dados que exigem autenticação.</td>
+            <td><code>accessToken</code> (string): O token de acesso atual armazenado.</td>
+            <td>Os dados protegidos solicitados. Lança erro (ex: 401) se o token for inválido/expirado.</td>
+        </tr>
+        <tr>
+            <td><code>refreshAccessToken(refreshToken)</code></td>
+            <td>Obtém um novo par de <code>accessToken</code> e <code>refreshToken</code> usando um <code>refreshToken</code> válido.</td>
+            <td><code>refreshToken</code> (string): O refresh token armazenado.</td>
+            <td>Objeto com <code>newAccessToken</code> (string) e <code>newRefreshToken</code> (string).</td>
+        </tr>
+         <!-- Adicione mais métodos conforme necessário -->
+    </tbody>
+</table>
+<p><em>Nota: Os nomes exatos dos métodos, parâmetros e retornos podem variar ligeiramente. Consulte o código-fonte da SDK ou a documentação da API para detalhes precisos.</em></p>
+
+<h2>7. Gerenciamento Manual de Tokens e Sessão</h2>
+<p>Com a versão atual da <code>neuralogins-client</code>, o <strong>gerenciamento dos tokens JWT é de responsabilidade do desenvolvedor</strong>. A SDK fornece os métodos, mas não armazena nem gerencia automaticamente os tokens ou a sessão.</p>
+<ul>
+    <li><strong>Armazenamento de Tokens:</strong> Após um login bem-sucedido (usando <code>loginEndUser</code>) ou uma renovação de token (usando <code>refreshAccessToken</code>), a SDK retorna o <code>accessToken</code> e o <code>refreshToken</code>. Você <strong>deve</strong> armazenar esses tokens de forma segura no lado do cliente (ex: <code>localStorage</code>, <code>sessionStorage</code>, ou memória, dependendo dos requisitos de segurança e persistência).</li>
+    <li><strong>Envio de Token:</strong> Para qualquer chamada a um endpoint protegido (como <code>getProtectedData</code>), você <strong>deve</strong> recuperar o <code>accessToken</code> armazenado e passá-lo como argumento para o método correspondente da SDK.</li>
+    <li><strong>Renovação de Token (Refresh):</strong>
+        <ul>
+            <li>Quando uma chamada para um endpoint protegido falhar com um status <code>401 Unauthorized</code> (indicando que o <code>accessToken</code> expirou ou é inválido), você deve usar o método <code>refreshAccessToken(refreshToken)</code>.</li>
+            <li>Passe o <code>refreshToken</code> que você armazenou para este método.</li>
+            <li>Se a renovação for bem-sucedida, ele retornará um <code>newAccessToken</code> e um <code>newRefreshToken</code>.</li>
+            <li>Você <strong>deve</strong> armazenar esses novos tokens (sobrescrevendo os antigos) e, em seguida, tentar novamente a chamada original ao endpoint protegido com o <code>newAccessToken</code>.</li>
+            <li>Se a renovação falhar (ex: o <code>refreshToken</code> também expirou ou foi invalidado), você deve tratar isso como uma sessão encerrada, limpar quaisquer tokens armazenados e provavelmente redirecionar o usuário para a tela de login.</li>
+        </ul>
+    </li>
+    <li><strong>Logout:</strong> Para deslogar um usuário, chame o método <code>logout(refreshToken)</code> passando o <code>refreshToken</code> armazenado. Isso invalidará o token no servidor. Além disso, você <strong>deve</strong> remover manualmente o <code>accessToken</code> e o <code>refreshToken</code> do seu armazenamento local (<code>localStorage</code>, etc.).</li>
+</ul>
+<p>Consulte o arquivo <code>frontend/documentation_example.js</code> para um exemplo prático completo de implementação dessa lógica de gerenciamento manual de tokens.</p>
+<!-- Fim do conteúdo da documentação -->
